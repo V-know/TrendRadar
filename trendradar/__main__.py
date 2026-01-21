@@ -308,7 +308,25 @@ class NewsAnalyzer:
             if not quiet:
                 print(f"读取到 {total_titles} 个标题（已按当前监控平台过滤）")
 
+            # 应用内容分类过滤（如果启用）
+            if self.ctx.content_filter_enabled:
+                all_results = self.ctx.filter_by_category(all_results, quiet=quiet)
+                # 同步过滤 title_info
+                filtered_title_info = {}
+                for source_id, titles in all_results.items():
+                    if source_id in title_info:
+                        filtered_title_info[source_id] = {
+                            title: info for title, info in title_info[source_id].items()
+                            if title in titles
+                        }
+                title_info = filtered_title_info
+
             new_titles = self.ctx.detect_new_titles(current_platform_ids, quiet=quiet)
+            
+            # 对新增标题也应用内容分类过滤
+            if self.ctx.content_filter_enabled and new_titles:
+                new_titles = self.ctx.filter_by_category(new_titles, quiet=True)
+
             word_groups, filter_words, global_filters = self.ctx.load_frequency_words()
 
             return (
@@ -1321,8 +1339,21 @@ class NewsAnalyzer:
             # 抓取热榜数据
             results, id_to_name, failed_ids = self._crawl_data()
 
+            # 应用内容分类过滤（如果启用）
+            if self.ctx.content_filter_enabled:
+                results = self.ctx.filter_by_category(results)
+
             # 抓取 RSS 数据（如果启用），返回统计条目、新增条目和原始条目
             rss_items, rss_new_items, raw_rss_items = self._crawl_rss_data()
+
+            # 对 RSS 数据应用内容分类过滤（如果启用）
+            if self.ctx.content_filter_enabled:
+                if rss_items:
+                    rss_items = self.ctx.filter_rss_by_category(rss_items)
+                if rss_new_items:
+                    rss_new_items = self.ctx.filter_rss_by_category(rss_new_items, quiet=True)
+                if raw_rss_items:
+                    raw_rss_items = self.ctx.filter_rss_by_category(raw_rss_items, quiet=True)
 
             # 执行模式策略，传递 RSS 数据用于合并推送
             self._execute_mode_strategy(

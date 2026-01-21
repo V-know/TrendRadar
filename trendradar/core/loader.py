@@ -139,6 +139,45 @@ def _load_weight_config(config_data: Dict) -> Dict:
     }
 
 
+def _load_content_filter_config(config_data: Dict) -> Dict:
+    """加载内容分类过滤配置"""
+    content_filter = config_data.get("content_filter", {})
+    
+    enabled = content_filter.get("enabled", False)
+    categories = content_filter.get("categories", [])
+    keywords = content_filter.get("keywords", {})
+    
+    # 如果未启用或没有配置分类，返回禁用状态
+    if not enabled or not categories:
+        return {
+            "ENABLED": False,
+            "CATEGORIES": [],
+            "KEYWORDS": {},
+        }
+    
+    # 只保留有效的分类（有对应关键词定义的）
+    valid_categories = [cat for cat in categories if cat in keywords and keywords[cat]]
+    
+    if not valid_categories:
+        print("[警告] 内容分类过滤已启用，但没有找到有效的分类关键词配置")
+        return {
+            "ENABLED": False,
+            "CATEGORIES": [],
+            "KEYWORDS": {},
+        }
+    
+    # 只保留启用分类的关键词
+    filtered_keywords = {cat: keywords[cat] for cat in valid_categories}
+    
+    print(f"内容分类过滤已启用，允许的分类: {', '.join(valid_categories)}")
+    
+    return {
+        "ENABLED": True,
+        "CATEGORIES": valid_categories,
+        "KEYWORDS": filtered_keywords,
+    }
+
+
 def _load_rss_config(config_data: Dict) -> Dict:
     """加载 RSS 配置"""
     rss = config_data.get("rss", {})
@@ -484,6 +523,9 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     # 平台配置
     platforms_config = config_data.get("platforms", {})
     config["PLATFORMS"] = platforms_config.get("sources", [])
+
+    # 内容分类过滤配置
+    config["CONTENT_FILTER"] = _load_content_filter_config(config_data)
 
     # RSS 配置
     config["RSS"] = _load_rss_config(config_data)

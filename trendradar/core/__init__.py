@@ -24,6 +24,11 @@ from trendradar.core.analyzer import (
     count_word_frequency,
     count_rss_frequency,
 )
+from trendradar.core.content_filter import (
+    matches_content_category,
+    filter_results_by_category,
+    filter_rss_items_by_category,
+)
 
 __all__ = [
     "parse_multi_account_config",
@@ -44,4 +49,8 @@ __all__ = [
     "format_time_display",
     "count_word_frequency",
     "count_rss_frequency",
+    # 内容分类过滤
+    "matches_content_category",
+    "filter_results_by_category",
+    "filter_rss_items_by_category",
 ]

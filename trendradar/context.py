@@ -23,6 +23,8 @@ from trendradar.core import (
     read_all_today_titles,
     detect_latest_new_titles,
     count_word_frequency,
+    filter_results_by_category,
+    filter_rss_items_by_category,
 )
 from trendradar.report import (
     clean_title,
@@ -114,6 +116,16 @@ class AppContext:
     def rss_feeds(self) -> List[Dict]:
         """获取 RSS 源列表"""
         return self.rss_config.get("FEEDS", [])
+
+    @property
+    def content_filter_config(self) -> Dict:
+        """获取内容分类过滤配置"""
+        return self.config.get("CONTENT_FILTER", {"ENABLED": False})
+
+    @property
+    def content_filter_enabled(self) -> bool:
+        """内容分类过滤是否启用"""
+        return self.content_filter_config.get("ENABLED", False)
 
     @property
     def display_mode(self) -> str:
@@ -212,6 +224,34 @@ class AppContext:
     def is_first_crawl(self) -> bool:
         """检测是否是当天第一次爬取"""
         return self.get_storage_manager().is_first_crawl_today()
+
+    # === 内容分类过滤 ===
+
+    def filter_by_category(self, results: Dict, quiet: bool = False) -> Dict:
+        """
+        根据内容分类过滤抓取结果
+        
+        Args:
+            results: 抓取结果 {source_id: {title: title_data}}
+            quiet: 是否静默模式
+            
+        Returns:
+            过滤后的结果字典
+        """
+        return filter_results_by_category(results, self.content_filter_config, quiet)
+
+    def filter_rss_by_category(self, rss_items: List[Dict], quiet: bool = False) -> List[Dict]:
+        """
+        根据内容分类过滤 RSS 文章
+        
+        Args:
+            rss_items: RSS 文章列表
+            quiet: 是否静默模式
+            
+        Returns:
+            过滤后的 RSS 文章列表
+        """
+        return filter_rss_items_by_category(rss_items, self.content_filter_config, quiet)
 
     # === 频率词处理 ===
 
